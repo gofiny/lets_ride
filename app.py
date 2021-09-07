@@ -29,11 +29,17 @@ async def on_shutdown():
 @app.post("/registration")
 async def registration(user: models.RegUser):
     try:
-        await handlers.registration(db_pool=local_storage["db_pool"], user=user)
+        user_uuid = await handlers.registration(db_pool=local_storage["db_pool"], user=user)
     except my_exceptions.UserExists as error:
         return {"status": False, "error": error.message}
     else:
-        return {"status": True}
+        return {"status": True, "uuid": user_uuid}
+
+
+@app.get("/authorization")
+async def authorization(user: models.AskAuthUser):
+    token = await handlers.authorization(db_pool=local_storage["db_pool"], user=user)
+    return {"status": True, "token": token}
 
 
 if __name__ == "__main__":

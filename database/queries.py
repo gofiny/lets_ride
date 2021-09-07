@@ -1,6 +1,7 @@
 from asyncpg import Connection, Pool
 from datetime import date, datetime
 from uuid import UUID
+from typing import Optional
 from .sql import tables
 from . import sql
 
@@ -29,6 +30,22 @@ async def is_nickname_free(conn: Connection, nickname: str) -> bool:
 @conn_transaction
 async def create_user(
     conn: Connection, uuid: UUID, nickname: str, first_name: str,
-    reg_time: datetime, born_date: date, gender: str, rate_uuid: UUID
+    reg_time: datetime, born_date: date, gender: str,
+    hashed_password: str, rate_uuid: UUID
 ):
-    await conn.execute(sql.create_user, uuid, nickname, first_name, reg_time, born_date, gender, rate_uuid)
+    await conn.execute(
+        sql.create_user, uuid, nickname, first_name,
+        reg_time, born_date, gender, hashed_password, rate_uuid
+    )
+
+
+@conn_transaction
+async def create_session(
+    conn: Connection, uuid: UUID, user_uuid: UUID,
+    device_id: str, start_time: datetime, token: str
+) -> str:
+    exists_token = await conn.fetchval(sql.get_session_token_by_device, device_id)
+    if exists_token:
+        return exists_token
+    await conn.execute(sql.create_session, uuid, user_uuid, device_id, start_time, token)
+    return token
