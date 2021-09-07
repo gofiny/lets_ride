@@ -59,3 +59,5 @@ create_user = '''WITH new_user  AS (
 get_session_token_by_device = '''SELECT token FROM sessions WHERE device_id=$1'''
 
 create_session = '''INSERT INTO sessions VALUES ($1, $2, $3, $4, $5)'''
+
+select_session_token = '''SELECT token FROM sessions WHERE user_uuid=$1 AND device_id=$2'''

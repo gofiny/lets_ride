@@ -49,3 +49,8 @@ async def create_session(
         return exists_token
     await conn.execute(sql.create_session, uuid, user_uuid, device_id, start_time, token)
     return token
+
+
+@conn_transaction
+async def his_authorized(conn: Connection, user_uuid: UUID, device_id: str, token: str) -> bool:
+    return await conn.fetchval(sql.select_session_token, user_uuid, device_id) == token

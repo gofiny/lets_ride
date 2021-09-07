@@ -1,6 +1,7 @@
 from asyncpg import Pool
 from database import queries
 from datetime import datetime, date
+from fastapi import HTTPException
 from uuid import uuid4, UUID
 
 import models
@@ -12,7 +13,7 @@ import secrets
 def generate_string(length):
     letters_and_digits = string.ascii_letters + string.digits
     return ''.join(secrets.choice(
-        letters_and_digits) for i in range(length))
+        letters_and_digits) for _ in range(length))
 
 
 async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
@@ -30,7 +31,7 @@ async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
 
 async def registration(db_pool: Pool, user: models.RegUser) -> UUID:
     if not await queries.is_nickname_free(db_pool=db_pool, nickname=user.nickname):
-        raise my_exceptions.UserExists("User with the same nickname already registered")
+        raise my_exceptions.UserExists("User with the same nickname is already registered")
 
     user_uuid = uuid4()
     rate_uuid = uuid4()
@@ -44,3 +45,11 @@ async def registration(db_pool: Pool, user: models.RegUser) -> UUID:
     )
 
     return user_uuid
+
+
+async def check_auth(db_pool: Pool, user_uuid: str, device_id: str, token: str):
+    if not await queries.his_authorized(
+        db_pool=db_pool, user_uuid=user_uuid,
+        device_id=device_id, token=token
+    ):
+        raise my_exceptions.AuthError

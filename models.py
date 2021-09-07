@@ -32,3 +32,9 @@ class AskAuthUser(BaseModel):
     uuid: str
     device_id: str
     hashed_password: str
+
+
+class AuthUser(BaseModel):
+    uuid: str
+    device_id: str
+    token: str

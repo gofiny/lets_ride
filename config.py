@@ -11,3 +11,4 @@ except KeyError as key:
     sys.exit()
 
 DB_DESTINATION = f"postgres://{_db_user}:{_db_password}@localhost/{_db_database}"
+PUBLIC_METHODS = ["/registration", "/authorization"]
