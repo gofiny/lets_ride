@@ -44,7 +44,7 @@ async def create_session(
     conn: Connection, uuid: UUID, user_uuid: UUID,
     device_id: str, start_time: datetime, token: str
 ) -> str:
-    exists_token = await conn.fetchval(sql.get_session_token_by_device, device_id)
+    exists_token = await conn.fetchval(sql.get_session_token_by_device, user_uuid, device_id)
     if exists_token:
         return exists_token
     await conn.execute(sql.create_session, uuid, user_uuid, device_id, start_time, token)

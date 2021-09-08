@@ -37,4 +37,3 @@ class AskAuthUser(BaseModel):
 class AuthUser(BaseModel):
     uuid: str
     device_id: str
-    token: str

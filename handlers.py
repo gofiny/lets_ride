@@ -1,7 +1,6 @@
 from asyncpg import Pool
 from database import queries
 from datetime import datetime, date
-from fastapi import HTTPException
 from uuid import uuid4, UUID
 
 import models
@@ -26,7 +25,7 @@ async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
         device_id=user.device_id, start_time=start_time, token=token
     )
 
-    return token
+    return ".".join([token, user.uuid, user.device_id])
 
 
 async def registration(db_pool: Pool, user: models.RegUser) -> UUID:

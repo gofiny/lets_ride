@@ -1,7 +1,11 @@
 from asyncpg import create_pool
-from fastapi import FastAPI, Request
+from asyncpg.exceptions import PostgresError
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from database.queries import init_database
+from starlette.authentication import AuthenticationBackend, AuthCredentials, SimpleUser, AuthenticationError
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.requests import Request, HTTPConnection
 
 import uvicorn
 import config
@@ -12,6 +16,32 @@ import my_exceptions
 
 app = FastAPI()
 local_storage = {}
+
+
+class Authentication(AuthenticationBackend):
+    async def authenticate(self, request: HTTPConnection):
+        if request.url.path in config.PUBLIC_METHODS:
+            return
+        try:
+            token, user_uuid, device_id = request.headers["Authorization"].split(".")
+            await handlers.check_auth(
+                db_pool=local_storage["db_pool"], user_uuid=user_uuid,
+                device_id=device_id, token=token
+            )
+        except (my_exceptions.AuthError, ValueError, KeyError):
+            raise AuthenticationError()
+
+        return AuthCredentials(["authenticated"]), SimpleUser(user_uuid)
+
+
+def auth_exception_handler(_: Request, _exc: AuthenticationError):
+    return JSONResponse(
+        status_code=200,
+        content={"status": False, "detail": "User is not authorized"}
+    )
+
+
+app.add_middleware(AuthenticationMiddleware, backend=Authentication(), on_error=auth_exception_handler)
 
 
 @app.on_event("startup")
@@ -27,24 +57,6 @@ async def on_shutdown():
     await db_pool.close()
 
 
-@app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    try:
-        if request.url.path not in config.PUBLIC_METHODS:
-            token = request.headers["Authorization"]
-            data = await request.json()
-            user_uuid = data["uuid"]
-            device_id = data["device_id"]
-            await handlers.check_auth(
-                db_pool=local_storage["db_pool"], user_uuid=user_uuid,
-                device_id=device_id, token=token
-            )
-    except (my_exceptions.AuthError, KeyError):
-        return JSONResponse({"status": False, "detail": "User is not authorized"})
-
-    return await call_next(request)
-
-
 @app.post("/registration")
 async def registration(user: models.RegUser):
     try:
@@ -57,8 +69,16 @@ async def registration(user: models.RegUser):
 
 @app.get("/authorization")
 async def authorization(user: models.AskAuthUser):
-    token = await handlers.authorization(db_pool=local_storage["db_pool"], user=user)
+    try:
+        token = await handlers.authorization(db_pool=local_storage["db_pool"], user=user)
+    except PostgresError:
+        return {"status": False, "detail": "Authorization error. Check uuid, device_id or hashed_password"}
     return {"status": True, "token": token}
+
+
+@app.get("/request_auth")
+async def request_auth():
+    return {"status": False, "detail": "User is not authorized"}
 
 
 @app.get("/test_auth")

@@ -36,9 +36,9 @@ tables = {
                 (
                     "uuid" UUID NOT NULL UNIQUE PRIMARY KEY,
                     "user_uuid" UUID NOT NULL REFERENCES "users" ("uuid") ON DELETE CASCADE,
-                    "device_id" VARCHAR(64) NOT NULL,
+                    "device_id" VARCHAR(32) NOT NULL,
                     "start_time" TIMESTAMP NOT NULL,
-                    "token" VARCHAR(64) NOT NULL
+                    "token" VARCHAR(100) NOT NULL
                 )'''
 }
 
@@ -56,7 +56,7 @@ create_user = '''WITH new_user  AS (
                             (uuid, user_uuid)
                         VALUES ($8, $1)'''
 
-get_session_token_by_device = '''SELECT token FROM sessions WHERE device_id=$1'''
+get_session_token_by_device = '''SELECT token FROM sessions WHERE user_uuid=$1 AND device_id=$2'''
 
 create_session = '''INSERT INTO sessions VALUES ($1, $2, $3, $4, $5)'''
 
