@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from starlette.authentication import BaseUser
 from fastapi import Query
 from enum import Enum
 
@@ -37,3 +38,22 @@ class AskAuthUser(BaseModel):
 class AuthUser(BaseModel):
     uuid: str
     device_id: str
+
+
+class User(BaseUser):
+    def __init__(self, uuid: str, device_id: str, token: str):
+        self.uuid = uuid
+        self.device_id = device_id
+        self.token = token
+
+    @property
+    def is_authenticated(self) -> bool:
+        return True
+
+    @property
+    def display_name(self) -> str:
+        return self.uuid
+
+    @property
+    def identity(self) -> str:
+        return "user"

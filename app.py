@@ -1,9 +1,9 @@
 from asyncpg import create_pool
 from asyncpg.exceptions import PostgresError
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import JSONResponse
 from database.queries import init_database
-from starlette.authentication import AuthenticationBackend, AuthCredentials, SimpleUser, AuthenticationError
+from starlette.authentication import AuthenticationBackend, AuthCredentials, AuthenticationError
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request, HTTPConnection
 
@@ -31,7 +31,7 @@ class Authentication(AuthenticationBackend):
         except (my_exceptions.AuthError, ValueError, KeyError):
             raise AuthenticationError()
 
-        return AuthCredentials(["authenticated"]), SimpleUser(user_uuid)
+        return AuthCredentials(["authenticated"]), models.User(uuid=user_uuid, device_id=device_id, token=token)
 
 
 def auth_exception_handler(_: Request, _exc: AuthenticationError):
@@ -61,8 +61,8 @@ async def on_shutdown():
 async def registration(user: models.RegUser):
     try:
         user_uuid = await handlers.registration(db_pool=local_storage["db_pool"], user=user)
-    except my_exceptions.UserExists as error:
-        return {"status": False, "error": error.message}
+    except my_exceptions.UserExists as exc:
+        return {"status": False, "error": exc.message}
     else:
         return {"status": True, "uuid": user_uuid}
 
@@ -79,6 +79,22 @@ async def authorization(user: models.AskAuthUser):
 @app.get("/request_auth")
 async def request_auth():
     return {"status": False, "detail": "User is not authorized"}
+
+
+@app.post("upload_user_photo")
+async def upload_user_photo(
+    request: Request, background_tasks: BackgroundTasks,
+    photo: UploadFile = File(..., media_type="image/jpeg")
+):
+    try:
+        photo_url = await handlers.upload_user_photo(
+            db_pool=local_storage["db_pool"], photo=photo, user=request.user,
+            background_tasks=background_tasks
+        )
+    except my_exceptions.TooManyPhotos as exc:
+        return {"status": False, "detail": exc.message}
+
+    return {"status": True, "photo_url": photo_url}
 
 
 @app.get("/test_auth")

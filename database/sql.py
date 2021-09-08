@@ -7,7 +7,6 @@ tables = {
                     "reg_time" TIMESTAMP NOT NULL,
                     "born_date" DATE,
                     "gender" VARCHAR(6),
-                    "photo" VARCHAR(255),
                     "hashed_password" VARCHAR(128)
                 )''',
 
@@ -21,7 +20,6 @@ tables = {
                     "max_age" SMALLINT,
                     "type" SMALLINT,
                     "vehicle_type" VARCHAR(8),
-                    "vehicle_photo" VARCHAR(255)
                 )''',  # type 0 - driver, 1 - companion, 2 - together
 
     "user_rating": '''CREATE TABLE IF NOT EXISTS "user_rating"
@@ -39,6 +37,16 @@ tables = {
                     "device_id" VARCHAR(32) NOT NULL,
                     "start_time" TIMESTAMP NOT NULL,
                     "token" VARCHAR(100) NOT NULL
+                )''',
+
+    "user_photos": '''CREATE TABLE IF NOT EXISTS "user_photos"
+                (   "uuid" UUID NOT NULL UNIQUE PRIMARY KEY,
+                    "user_uuid" UUID NOT NULL REFERENCES "users" ("uuid") ON DELETE CASCADE
+                )''',
+
+    "profile_photos": '''CREATE TABLE IF NOT EXISTS "profile_photos"
+                (   "uuid" UUID NOT NULL UNIQUE PRIMARY KEY,
+                    "profile_uuid" UUID NOT NULL REFERENCES "profiles" ("uuid") ON DELETE CASCADE
                 )'''
 }
 
@@ -61,3 +69,11 @@ get_session_token_by_device = '''SELECT token FROM sessions WHERE user_uuid=$1 A
 create_session = '''INSERT INTO sessions VALUES ($1, $2, $3, $4, $5)'''
 
 select_session_token = '''SELECT token FROM sessions WHERE user_uuid=$1 AND device_id=$2'''
+
+select_user_photo_count = '''SELECT COUNT(uuid) FROM user_photos WHERE user_uuid=$1'''
+
+select_profile_photo_count = '''SELECT COUNT(uuid) FROM profile_photos WHERE profile_uuid=$1'''
+
+insert_user_photo = '''INSERT INTO user_photos VALUES ($1, $2)'''
+
+insert_profile_photo = '''INSERT INTO profile_photos VALUES ($1, $2)'''

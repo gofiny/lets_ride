@@ -1,6 +1,8 @@
 from asyncpg import Pool
+from config import STATIC_FILES, DOMAIN_NAME
 from database import queries
 from datetime import datetime, date
+from fastapi import BackgroundTasks, UploadFile
 from uuid import uuid4, UUID
 
 import models
@@ -52,3 +54,16 @@ async def check_auth(db_pool: Pool, user_uuid: str, device_id: str, token: str):
         device_id=device_id, token=token
     ):
         raise my_exceptions.AuthError
+
+
+async def upload_user_photo(
+    db_pool: Pool, photo: UploadFile,
+    user: models.User, background_tasks: BackgroundTasks
+) -> str:
+    uuid = uuid4()
+    filename = f"{uuid}.jpg"
+
+    await queries.add_user_photo(db_pool=db_pool, uuid=uuid, user_uuid=user.uuid)
+    background_tasks.add_task(photo.write, f"{STATIC_FILES}/{filename}")
+
+    return f"{DOMAIN_NAME}/{STATIC_FILES}/{filename}"
