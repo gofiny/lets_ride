@@ -1,6 +1,6 @@
 from asyncpg import create_pool
 from asyncpg.exceptions import PostgresError
-from fastapi import FastAPI, BackgroundTasks, File, Request as FRequest
+from fastapi import FastAPI, BackgroundTasks, File
 from fastapi.responses import JSONResponse
 from database.queries import init_database
 from starlette.authentication import AuthenticationBackend, AuthCredentials, AuthenticationError
@@ -85,7 +85,7 @@ async def request_auth():
 async def upload_photo(
     subject_uuid: str, photo_type: models.PhotoType,
     background_tasks: BackgroundTasks,
-    photos: list[bytes] = File(..., media_type="image/jpeg")
+    photos: list[bytes] = File(..., media_type="image/jpeg", max_length=524288)
 ):
     try:
         photo_url = await handlers.upload_photos(
