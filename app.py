@@ -1,6 +1,6 @@
 from asyncpg import create_pool
 from asyncpg.exceptions import PostgresError
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, File, Request as FRequest
 from fastapi.responses import JSONResponse
 from database.queries import init_database
 from starlette.authentication import AuthenticationBackend, AuthCredentials, AuthenticationError
@@ -81,18 +81,22 @@ async def request_auth():
     return {"status": False, "detail": "User is not authorized"}
 
 
-@app.post("upload_user_photo")
-async def upload_user_photo(
-    request: Request, background_tasks: BackgroundTasks,
-    photo: UploadFile = File(..., media_type="image/jpeg")
+@app.post("/upload_photo")
+async def upload_photo(
+    subject_uuid: str, photo_type: models.PhotoType,
+    background_tasks: BackgroundTasks,
+    photos: list[bytes] = File(..., media_type="image/jpeg")
 ):
     try:
-        photo_url = await handlers.upload_user_photo(
-            db_pool=local_storage["db_pool"], photo=photo, user=request.user,
-            background_tasks=background_tasks
+        photo_url = await handlers.upload_photos(
+            db_pool=local_storage["db_pool"],
+            subject_uuid=subject_uuid, photo_type=photo_type,
+            photos=photos, background_tasks=background_tasks
         )
     except my_exceptions.TooManyPhotos as exc:
         return {"status": False, "detail": exc.message}
+    except PostgresError:
+        return {"status": False, "detail": "Wrong subject_uuid"}
 
     return {"status": True, "photo_url": photo_url}
 

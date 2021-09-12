@@ -4,6 +4,11 @@ from fastapi import Query
 from enum import Enum
 
 
+class PhotoType(str, Enum):
+    user = "user"
+    profile = "profile"
+
+
 class Gender(str, Enum):
     male = "male"
     female = "female"

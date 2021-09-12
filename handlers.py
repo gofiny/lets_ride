@@ -2,9 +2,10 @@ from asyncpg import Pool
 from config import STATIC_FILES, DOMAIN_NAME
 from database import queries
 from datetime import datetime, date
-from fastapi import BackgroundTasks, UploadFile
+from fastapi import BackgroundTasks
 from uuid import uuid4, UUID
 
+import aiofiles
 import models
 import my_exceptions
 import string
@@ -15,6 +16,36 @@ def generate_string(length):
     letters_and_digits = string.ascii_letters + string.digits
     return ''.join(secrets.choice(
         letters_and_digits) for _ in range(length))
+
+
+def gen_files_uuid(files: list[bytes]) -> tuple[tuple[UUID, bytes]]:
+    names = []
+    for file in files:
+        names.append((uuid4(), file))
+
+    return tuple(names)
+
+
+def gen_client_photos_name(files: tuple[tuple[UUID, bytes]]) -> list[str]:
+    names = []
+    for file in files:
+        name = f"{DOMAIN_NAME}/{STATIC_FILES}/{file[0]}.jpg"
+        names.append(name)
+    return names
+
+
+def pack_photo_to_upload(files: tuple[tuple[UUID, bytes]], subject_uuid: str) -> tuple[tuple[UUID, str]]:
+    packed = []
+    for file in files:
+        packed.append((file[0], subject_uuid))
+
+    return tuple(packed)
+
+
+async def write_files(files: tuple[tuple[UUID, bytes]], file_extension: str):
+    for file in files:
+        async with aiofiles.open(f"{STATIC_FILES}/{file[0]}{file_extension}", "wb") as f:
+            await f.write(file[1])
 
 
 async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
@@ -56,14 +87,25 @@ async def check_auth(db_pool: Pool, user_uuid: str, device_id: str, token: str):
         raise my_exceptions.AuthError
 
 
-async def upload_user_photo(
-    db_pool: Pool, photo: UploadFile,
-    user: models.User, background_tasks: BackgroundTasks
-) -> str:
-    uuid = uuid4()
-    filename = f"{uuid}.jpg"
+async def upload_photos(
+    db_pool: Pool,
+    subject_uuid: str, photo_type: str,
+    background_tasks: BackgroundTasks,
+    photos: list[bytes]
+) -> list[str]:
 
-    await queries.add_user_photo(db_pool=db_pool, uuid=uuid, user_uuid=user.uuid)
-    background_tasks.add_task(photo.write, f"{STATIC_FILES}/{filename}")
+    if len(photos) > 5:
+        raise my_exceptions.TooManyPhotos("You cannot upload more than 5 photos!")
 
-    return f"{DOMAIN_NAME}/{STATIC_FILES}/{filename}"
+    files = gen_files_uuid(files=photos)
+    photos_to_upload = pack_photo_to_upload(files=files, subject_uuid=subject_uuid)
+
+    await queries.add_photo(
+        db_pool=db_pool, photos=photos_to_upload,
+        photo_type=photo_type,
+        subject_uuid=subject_uuid
+    )
+
+    background_tasks.add_task(write_files, files=files, file_extension=".jpg")
+
+    return gen_client_photos_name(files=files)

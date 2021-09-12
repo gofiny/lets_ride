@@ -2,8 +2,9 @@ from asyncpg import Connection, Pool
 from datetime import date, datetime
 from uuid import UUID
 from .sql import tables
+from my_exceptions import TooManyPhotos
+
 from . import sql
-from ..my_exceptions import TooManyPhotos
 
 
 def conn_transaction(func):
@@ -57,16 +58,8 @@ async def his_authorized(conn: Connection, user_uuid: UUID, device_id: str, toke
 
 
 @conn_transaction
-async def add_user_photo(conn: Connection, uuid: UUID, user_uuid: UUID):
-    photos_count = await conn.fetchval(sql.select_user_photo_count, user_uuid)
-    if photos_count == 5:
-        raise TooManyPhotos("Max photos count is 5!")
-    await conn.execute(sql.insert_user_photo, uuid, user_uuid)
-
-
-@conn_transaction
-async def add_profile_photo(conn: Connection, uuid: UUID, profile_uuid: UUID):
-    photos_count = await conn.fetchval(sql.select_user_photo_count, profile_uuid)
-    if photos_count == 3:
-        raise TooManyPhotos("Max photos count is 3!")
-    await conn.execute(sql.insert_profile_photo, uuid, profile_uuid)
+async def add_photo(conn: Connection, photos: tuple[tuple[UUID, str]], photo_type: str, subject_uuid: UUID):
+    photos_count = await conn.fetchval(sql.select_photo_count.format(photo_type=photo_type), subject_uuid)
+    if (photos_count + len(photos)) > 5:
+        raise TooManyPhotos("Max count of photos 5!")
+    await conn.executemany(sql.insert_photo.format(photo_type=photo_type), photos)
