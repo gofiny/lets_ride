@@ -43,14 +43,14 @@ async def is_nickname_free(conn: Connection, nickname: str) -> bool:
 async def create_user(
     conn: Connection, user_id: UUID, nickname: str, first_name: str,
     reg_time: datetime, born_date: date, gender: str,
-    hashed_password: str, rate_uuid: UUID
+    hashed_password: str, rating_uuid: UUID
 ):
     """
     create new user in database
     """
     await conn.execute(
         sql.create_user, user_id, nickname, first_name,
-        reg_time, born_date, gender, hashed_password, rate_uuid
+        reg_time, born_date, gender, hashed_password, rating_uuid
     )
 
 
