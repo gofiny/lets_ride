@@ -26,6 +26,7 @@ class VehicleType(str, Enum):
     bike = "bike"
     scooter = "scooter"
     legs = "legs"
+    any = "any"
 
 
 class RegUser(BaseModel):
@@ -49,18 +50,18 @@ class RegUser(BaseModel):
 
 
 class AskAuthUser(BaseModel):
-    uuid: str
+    user_id: str
     device_id: str
     hashed_password: str
 
 
 class AuthUser(BaseModel):
-    uuid: str
+    user_id: str
     device_id: str
 
 
 class NewProfile(BaseModel):
-    user_uuid: str
+    user_id: str
     desired_gender: Gender
     min_age: int = Query(..., ge=16, le=100)
     max_age: int = Query(..., ge=16, le=100)
@@ -69,8 +70,8 @@ class NewProfile(BaseModel):
 
 
 class User(BaseUser):
-    def __init__(self, uuid: str, device_id: str, token: str):
-        self.uuid = uuid
+    def __init__(self, user_id: str, device_id: str, token: str):
+        self.user_id = user_id
         self.device_id = device_id
         self.token = token
 
@@ -80,7 +81,7 @@ class User(BaseUser):
 
     @property
     def display_name(self) -> str:
-        return self.uuid
+        return self.user_id
 
     @property
     def identity(self) -> str:

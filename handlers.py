@@ -34,10 +34,10 @@ def gen_client_photos_name(files: tuple[tuple[UUID, bytes]]) -> list[str]:
     return names
 
 
-def pack_photo_to_upload(files: tuple[tuple[UUID, bytes]], subject_uuid: str) -> tuple[tuple[UUID, str]]:
+def pack_photo_to_upload(files: tuple[tuple[UUID, bytes]], subject_id: str) -> tuple[tuple[UUID, str]]:
     packed = []
     for file in files:
-        packed.append((file[0], subject_uuid))
+        packed.append((file[0], subject_id))
 
     return tuple(packed)
 
@@ -49,40 +49,40 @@ async def write_files(files: tuple[tuple[UUID, bytes]], file_extension: str):
 
 
 async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
-    uuid = uuid4()
+    session_id = uuid4()
     start_time = datetime.now()
     token = generate_string(64)
 
     token = await queries.create_session(
-        db_pool=db_pool, uuid=uuid, user_uuid=user.uuid,
+        db_pool=db_pool, session_id=session_id, user_id=user.user_id,
         device_id=user.device_id, start_time=start_time, token=token
     )
 
-    return ".".join([token, user.uuid, user.device_id])
+    return ".".join([token, user.user_id, user.device_id])
 
 
 async def registration(db_pool: Pool, user: models.RegUser) -> UUID:
     if not await queries.is_nickname_free(db_pool=db_pool, nickname=user.nickname):
         raise my_exceptions.UserExists("User with the same nickname is already registered")
 
-    user_uuid = uuid4()
-    rate_uuid = uuid4()
+    user_id = uuid4()
+    rating_id = uuid4()
     reg_time = datetime.now()
     born_date = date.fromtimestamp(user.born_date)
 
     await queries.create_user(
-        db_pool=db_pool, uuid=user_uuid, nickname=user.nickname,
+        db_pool=db_pool, user_id=user_id, nickname=user.nickname,
         first_name=user.first_name, reg_time=reg_time, born_date=born_date,
-        gender=user.gender, hashed_password=user.hashed_password, rate_uuid=rate_uuid
+        gender=user.gender, hashed_password=user.hashed_password, rating_uuid=rating_id
     )
 
-    return user_uuid
+    return user_id
 
 
-async def check_auth(db_pool: Pool, user_uuid: str, device_id: str, token: str):
+async def check_auth(db_pool: Pool, user_id: str, device_id: str, token: str):
 
     if not await queries.his_authorized(
-        db_pool=db_pool, user_uuid=user_uuid,
+        db_pool=db_pool, user_id=user_id,
         device_id=device_id, token=token
     ):
         raise my_exceptions.AuthError
@@ -90,7 +90,7 @@ async def check_auth(db_pool: Pool, user_uuid: str, device_id: str, token: str):
 
 async def upload_photos(
     db_pool: Pool,
-    subject_uuid: str, photo_type: str,
+    subject_id: str, photo_type: str,
     background_tasks: BackgroundTasks,
     photos: list[bytes]
 ) -> list[str]:
@@ -99,12 +99,12 @@ async def upload_photos(
         raise my_exceptions.TooManyPhotos("You cannot upload more than 5 photos!")
 
     files = gen_files_uuid(files=photos)
-    photos_to_upload = pack_photo_to_upload(files=files, subject_uuid=subject_uuid)
+    photos_to_upload = pack_photo_to_upload(files=files, subject_id=subject_id)
 
     await queries.add_photo(
         db_pool=db_pool, photos=photos_to_upload,
         photo_type=photo_type,
-        subject_uuid=subject_uuid
+        subject_id=subject_id
     )
 
     background_tasks.add_task(write_files, files=files, file_extension=".jpg")
@@ -113,12 +113,12 @@ async def upload_photos(
 
 
 async def create_profile(db_pool: Pool, profile: models.NewProfile):
-    uuid = uuid4()
+    profile_id = uuid4()
 
     await queries.create_profile(
         db_pool=db_pool,
-        uuid=uuid,
-        user_uuid=profile.user_uuid,
+        profile_id=profile_id,
+        user_id=profile.user_id,
         desired_gender=profile.desired_gender,
         min_age=profile.min_age,
         max_age=profile.max_age,

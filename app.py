@@ -20,22 +20,22 @@ local_storage = {}
 
 
 class Authentication(AuthenticationBackend):
-    """Authentication midleware"""
+    """Authentication middleware"""
     async def authenticate(self, request: HTTPConnection) -> Optional[tuple[AuthCredentials, models.User]]:
 
         #  check authenticate only in marked methods in config"
         if request.url.path in config.PUBLIC_METHODS:
             return
         try:
-            token, user_uuid, device_id = request.headers["Authorization"].split(".")
+            token, user_id, device_id = request.headers["Authorization"].split(".")
             await handlers.check_auth(
-                db_pool=local_storage["db_pool"], user_uuid=user_uuid,
+                db_pool=local_storage["db_pool"], user_id=user_id,
                 device_id=device_id, token=token
             )
         except (my_exceptions.AuthError, ValueError, KeyError):
             raise AuthenticationError()
 
-        return AuthCredentials(["authenticated"]), models.User(uuid=user_uuid, device_id=device_id, token=token)
+        return AuthCredentials(["authenticated"]), models.User(user_id=user_id, device_id=device_id, token=token)
 
 
 def auth_exception_handler(_: Request, _exc: AuthenticationError) -> JSONResponse:
@@ -59,7 +59,7 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    """Run when aplication is turning off"""
+    """Run when application is turning off"""
     db_pool = local_storage["db_pool"]
     await db_pool.close()
 
@@ -68,26 +68,26 @@ async def on_shutdown():
 async def registration(user: models.RegUser):
     """New user registration method"""
     try:
-        user_uuid = await handlers.registration(db_pool=local_storage["db_pool"], user=user)
+        user_id = await handlers.registration(db_pool=local_storage["db_pool"], user=user)
     except my_exceptions.UserExists as exc:
         return {"status": False, "error": exc.message}
     else:
-        return {"status": True, "uuid": user_uuid}
+        return {"status": True, "user_id": user_id}
 
 
 @app.get("/authorization")
 async def authorization(user: models.AskAuthUser):
-    """User authorizatin method"""
+    """User authorization method"""
     try:
         token = await handlers.authorization(db_pool=local_storage["db_pool"], user=user)
     except PostgresError:
-        return {"status": False, "detail": "Authorization error. Check uuid, device_id or hashed_password"}
+        return {"status": False, "detail": "Authorization error. Check user_id, device_id or hashed_password"}
     return {"status": True, "token": token}
 
 
 @app.post("/upload_photo")
 async def upload_photo(
-    subject_uuid: str, photo_type: models.PhotoType,
+    subject_id: str, photo_type: models.PhotoType,
     background_tasks: BackgroundTasks,
     photos: list[bytes] = File(..., media_type="image/jpeg", max_length=524288)
 ):
@@ -98,13 +98,13 @@ async def upload_photo(
     try:
         photo_url = await handlers.upload_photos(
             db_pool=local_storage["db_pool"],
-            subject_uuid=subject_uuid, photo_type=photo_type,
+            subject_id=subject_id, photo_type=photo_type,
             photos=photos, background_tasks=background_tasks
         )
     except my_exceptions.TooManyPhotos as exc:
         return {"status": False, "detail": exc.message}
     except PostgresError:
-        return {"status": False, "detail": "Wrong subject_uuid"}
+        return {"status": False, "detail": "Wrong subject_id"}
 
     return {"status": True, "photo_url": photo_url}
 
@@ -117,7 +117,7 @@ async def create_profile(profile: models.NewProfile):
     except my_exceptions.ProfileAlreadyExists as exc:
         return {"status": False, "detail": exc.message}
     except PostgresError:
-        return {"status": False, "detail": "Wrong user_uuid"}
+        return {"status": False, "detail": "Wrong user_id"}
     return {"status": True}
 
 
