@@ -21,7 +21,7 @@ local_storage = {}
 
 class Authentication(AuthenticationBackend):
     """Authentication midleware"""
-    async def authenticate(self, request: HTTPConnection) -> Optional[tuple[AuthCredentials], models.User]:
+    async def authenticate(self, request: HTTPConnection) -> Optional[tuple[AuthCredentials, models.User]]:
 
         #  check authenticate only in marked methods in config"
         if request.url.path in config.PUBLIC_METHODS:
