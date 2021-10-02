@@ -53,9 +53,10 @@ async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
     start_time = datetime.now()
     token = generate_string(64)
 
-    token = await queries.create_session(
+    token = await queries.create_or_get_session(
         db_pool=db_pool, session_id=session_id, user_id=user.user_id,
-        device_id=user.device_id, start_time=start_time, token=token
+        device_id=user.device_id, start_time=start_time, token=token,
+        hashed_password=user.hashed_password
     )
 
     return ".".join([token, user.user_id, user.device_id])

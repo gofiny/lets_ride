@@ -55,17 +55,18 @@ async def create_user(
 
 
 @conn_transaction
-async def create_session(
+async def create_or_get_session(
     conn: Connection, session_id: UUID, user_id: UUID,
-    device_id: str, start_time: datetime, token: str
+    device_id: str, start_time: datetime, token: str,
+    hashed_password: str
 ) -> str:
     """
     Checking existing sessions on this device, return if exists or create new
     """
-    exists_token = await conn.fetchval(sql.get_session_token_by_device, user_id, device_id)
+    exists_token = await conn.fetchval(sql.get_session_token_by_device, user_id, device_id, hashed_password)
     if exists_token:
         return exists_token
-    await conn.execute(sql.insert_session, session_id, user_id, device_id, start_time, token)
+    await conn.execute(sql.insert_session, user_id, hashed_password, session_id, device_id, start_time, token)
     return token
 
 
