@@ -14,7 +14,7 @@ tables = {
                 (
                     "uuid" UUID NOT NULL UNIQUE PRIMARY KEY,
                     "user_uuid" UUID NOT NULL REFERENCES "users" ("uuid") ON DELETE CASCADE,
-                    "status" BOOL,
+                    "status" BOOL DEFAULT true,
                     "desired_gender" VARCHAR(6),
                     "min_age" SMALLINT,
                     "max_age" SMALLINT,
@@ -68,10 +68,18 @@ create_user = '''WITH new_user  AS (
 
 get_session_token_by_device = '''SELECT token FROM sessions WHERE user_uuid=$1 AND device_id=$2'''
 
-create_session = '''INSERT INTO sessions VALUES ($1, $2, $3, $4, $5)'''
+insert_session = '''INSERT INTO sessions VALUES ($1, $2, $3, $4, $5)'''
 
 select_session_token = '''SELECT token FROM sessions WHERE user_uuid=$1 AND device_id=$2'''
 
 select_photo_count = '''SELECT COUNT(uuid) FROM {photo_type}_photos WHERE {photo_type}_uuid=$1'''
 
 insert_photo = '''INSERT INTO {photo_type}_photos VALUES ($1, $2)'''
+
+insert_profile = '''INSERT INTO profiles 
+                        (
+                            uuid, user_uuid, desired_gender, min_age, max_age, type, vehicle_type
+                        )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)'''
+
+check_profile = '''SELECT uuid FROM profiles WHERE user_uuid=$1 AND type=$2'''

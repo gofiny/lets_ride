@@ -80,6 +80,7 @@ async def registration(db_pool: Pool, user: models.RegUser) -> UUID:
 
 
 async def check_auth(db_pool: Pool, user_uuid: str, device_id: str, token: str):
+
     if not await queries.his_authorized(
         db_pool=db_pool, user_uuid=user_uuid,
         device_id=device_id, token=token
@@ -109,3 +110,18 @@ async def upload_photos(
     background_tasks.add_task(write_files, files=files, file_extension=".jpg")
 
     return gen_client_photos_name(files=files)
+
+
+async def create_profile(db_pool: Pool, profile: models.NewProfile):
+    uuid = uuid4()
+
+    await queries.create_profile(
+        db_pool=db_pool,
+        uuid=uuid,
+        user_uuid=profile.user_uuid,
+        desired_gender=profile.desired_gender,
+        min_age=profile.min_age,
+        max_age=profile.max_age,
+        profile_type=profile.profile_type,
+        vehicle_type=profile.vehicle_type
+    )

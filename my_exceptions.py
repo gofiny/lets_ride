@@ -12,3 +12,9 @@ class TooManyPhotos(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(message)
+
+
+class ProfileAlreadyExists(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)

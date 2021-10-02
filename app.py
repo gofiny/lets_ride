@@ -6,6 +6,7 @@ from database.queries import init_database
 from starlette.authentication import AuthenticationBackend, AuthCredentials, AuthenticationError
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request, HTTPConnection
+from typing import Optional
 
 import uvicorn
 import config
@@ -19,7 +20,10 @@ local_storage = {}
 
 
 class Authentication(AuthenticationBackend):
-    async def authenticate(self, request: HTTPConnection):
+    """Authentication midleware"""
+    async def authenticate(self, request: HTTPConnection) -> Optional[tuple[AuthCredentials], models.User]:
+
+        #  check authenticate only in marked methods in config"
         if request.url.path in config.PUBLIC_METHODS:
             return
         try:
@@ -34,7 +38,8 @@ class Authentication(AuthenticationBackend):
         return AuthCredentials(["authenticated"]), models.User(uuid=user_uuid, device_id=device_id, token=token)
 
 
-def auth_exception_handler(_: Request, _exc: AuthenticationError):
+def auth_exception_handler(_: Request, _exc: AuthenticationError) -> JSONResponse:
+    """Return Json response with message if user is not authenticated"""
     return JSONResponse(
         status_code=200,
         content={"status": False, "detail": "User is not authorized"}
@@ -46,6 +51,7 @@ app.add_middleware(AuthenticationMiddleware, backend=Authentication(), on_error=
 
 @app.on_event("startup")
 async def on_startup():
+    """Do this when stating application"""
     db_pool = await create_pool(config.DB_DESTINATION)
     await init_database(db_pool=db_pool)
     local_storage["db_pool"] = db_pool
@@ -53,12 +59,14 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    """Run when aplication is turning off"""
     db_pool = local_storage["db_pool"]
     await db_pool.close()
 
 
 @app.post("/registration")
 async def registration(user: models.RegUser):
+    """New user registration method"""
     try:
         user_uuid = await handlers.registration(db_pool=local_storage["db_pool"], user=user)
     except my_exceptions.UserExists as exc:
@@ -69,16 +77,12 @@ async def registration(user: models.RegUser):
 
 @app.get("/authorization")
 async def authorization(user: models.AskAuthUser):
+    """User authorizatin method"""
     try:
         token = await handlers.authorization(db_pool=local_storage["db_pool"], user=user)
     except PostgresError:
         return {"status": False, "detail": "Authorization error. Check uuid, device_id or hashed_password"}
     return {"status": True, "token": token}
-
-
-@app.get("/request_auth")
-async def request_auth():
-    return {"status": False, "detail": "User is not authorized"}
 
 
 @app.post("/upload_photo")
@@ -87,6 +91,10 @@ async def upload_photo(
     background_tasks: BackgroundTasks,
     photos: list[bytes] = File(..., media_type="image/jpeg", max_length=524288)
 ):
+    """
+    Can upload from 1 to 5 photos in one time.
+    If user already have many photos, return error message
+    """
     try:
         photo_url = await handlers.upload_photos(
             db_pool=local_storage["db_pool"],
@@ -101,9 +109,16 @@ async def upload_photo(
     return {"status": True, "photo_url": photo_url}
 
 
-@app.get("/test_auth")
-async def test_auth(user: models.AuthUser):
-    return {"status": True, "user": user.uuid}
+@app.post("/create_profile")   # check for sql injections
+async def create_profile(profile: models.NewProfile):
+    """Create new profile for search opponent"""
+    try:
+        await handlers.create_profile(db_pool=local_storage["db_pool"], profile=profile)
+    except my_exceptions.ProfileAlreadyExists as exc:
+        return {"status": False, "detail": exc.message}
+    except PostgresError:
+        return {"status": False, "detail": "Wrong user_uuid"}
+    return {"status": True}
 
 
 if __name__ == "__main__":

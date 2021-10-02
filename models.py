@@ -14,6 +14,20 @@ class Gender(str, Enum):
     female = "female"
 
 
+class ProfileType(int, Enum):
+    driver = 0
+    companion = 1
+    together = 2
+
+
+class VehicleType(str, Enum):
+    moto = "moto"
+    car = "car"
+    bike = "bike"
+    scooter = "scooter"
+    legs = "legs"
+
+
 class RegUser(BaseModel):
     nickname: str = Query(
         ...,
@@ -43,6 +57,15 @@ class AskAuthUser(BaseModel):
 class AuthUser(BaseModel):
     uuid: str
     device_id: str
+
+
+class NewProfile(BaseModel):
+    user_uuid: str
+    desired_gender: Gender
+    min_age: int = Query(..., ge=16, le=100)
+    max_age: int = Query(..., ge=16, le=100)
+    profile_type: ProfileType
+    vehicle_type: VehicleType
 
 
 class User(BaseUser):
