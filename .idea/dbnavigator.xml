@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DBNavigator.Project.DataEditorManager">
     <record-view-column-sorting-type value="BY_INDEX" />
-    <value-preview-text-wrapping value="true" />
+    <value-preview-text-wrapping value="false" />
     <value-preview-pinned value="false" />
   </component>
   <component name="DBNavigator.Project.DataExportManager">
@@ -27,27 +27,19 @@
     <loaded-nodes>
       <connection connection-id="d9d4ebcf-7f1e-4bb6-9d8e-e586631ed3b1">
         <schema name="pg_catalog" object-types="table, view, function" />
-        <schema name="public" object-types="table, view, sequence, function, constraint, index, column, dataset trigger" />
+        <schema name="public" object-types="table, view, function, column" />
       </connection>
     </loaded-nodes>
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="d9d4ebcf-7f1e-4bb6-9d8e-e586631ed3b1">
-      <console name="Connection" type="STANDARD" schema="public" session="Main"><![CDATA[select * from sessions;
-
-SELECT user_id FROM users WHERE hashed_password = 'hashhashhashhashhashhashhashhashhashhashhass';
-
-select * from users;
-
-with users_id as (
-    select user_id 
-    from users
-    where hashed_password='hashhashhashhashhashhashhashhashhashhashhash')
-select user_id from users_id;]]></console>
+      <console name="Connection" type="STANDARD" schema="public" session="Main"><![CDATA[select * from profiles;]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseFileManager">
-    <open-files />
+    <open-files>
+      <object connection-id="d9d4ebcf-7f1e-4bb6-9d8e-e586631ed3b1" object-ref="consoles/Connection" />
+    </open-files>
   </component>
   <component name="DBNavigator.Project.DatabaseSessionManager">
     <connection id="d9d4ebcf-7f1e-4bb6-9d8e-e586631ed3b1" />
@@ -287,15 +279,11 @@ select user_id from users_id;]]></console>
           <content-type name="DTD" enabled="true" />
           <content-type name="HTML" enabled="true" />
           <content-type name="XHTML" enabled="true" />
-          <content-type name="Java" enabled="true" />
           <content-type name="SQL" enabled="true" />
           <content-type name="PL/SQL" enabled="true" />
           <content-type name="JSON" enabled="true" />
           <content-type name="JSON5" enabled="true" />
-          <content-type name="Groovy" enabled="true" />
-          <content-type name="AIDL" enabled="true" />
           <content-type name="YAML" enabled="true" />
-          <content-type name="Manifest" enabled="true" />
         </content-types>
       </qualified-text-editor>
       <record-navigation>

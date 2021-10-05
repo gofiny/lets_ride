@@ -76,7 +76,7 @@ async def registration(user: models.RegUser):
 
 
 @app.get("/authorization")
-async def authorization(user: models.AskAuthUser):
+async def authorization(user: models.AskForAuthUser):
     """User authorization method"""
     try:
         token = await handlers.authorization(db_pool=local_storage["db_pool"], user=user)
@@ -109,15 +109,15 @@ async def upload_photo(
     return {"status": True, "photo_url": photo_url}
 
 
-@app.post("/create_profile")   # check for sql injections
+@app.post("/create_profile")
 async def create_profile(profile: models.NewProfile):
-    """Create new profile for search opponent"""
+    """Create new profile for searching opponent"""
     try:
         await handlers.create_profile(db_pool=local_storage["db_pool"], profile=profile)
     except my_exceptions.ProfileAlreadyExists as exc:
         return {"status": False, "detail": exc.message}
-    except PostgresError:
-        return {"status": False, "detail": "Wrong user_id"}
+    except PostgresError as e:
+        return {"status": False, "detail": "Wrong user_id", "debug": str(e)}
     return {"status": True}
 
 

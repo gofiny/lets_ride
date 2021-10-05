@@ -1,6 +1,5 @@
 from asyncpg import Connection, Pool
 from datetime import date, datetime
-from uuid import UUID
 
 import my_exceptions
 from .sql import tables
@@ -41,9 +40,9 @@ async def is_nickname_free(conn: Connection, nickname: str) -> bool:
 
 @conn_transaction
 async def create_user(
-    conn: Connection, user_id: UUID, nickname: str, first_name: str,
+    conn: Connection, user_id: str, nickname: str, first_name: str,
     reg_time: datetime, born_date: date, gender: str,
-    hashed_password: str, rating_uuid: UUID
+    hashed_password: str, rating_uuid: str
 ):
     """
     create new user in database
@@ -56,7 +55,7 @@ async def create_user(
 
 @conn_transaction
 async def create_or_get_session(
-    conn: Connection, session_id: UUID, user_id: UUID,
+    conn: Connection, session_id: str, user_id: str,
     device_id: str, start_time: datetime, token: str,
     hashed_password: str
 ) -> str:
@@ -71,7 +70,7 @@ async def create_or_get_session(
 
 
 @conn_transaction
-async def his_authorized(conn: Connection, user_id: UUID, device_id: str, token: str) -> bool:
+async def his_authorized(conn: Connection, user_id: str, device_id: str, token: str) -> bool:
     """
     Check user authorization
     """
@@ -79,7 +78,7 @@ async def his_authorized(conn: Connection, user_id: UUID, device_id: str, token:
 
 
 @conn_transaction
-async def add_photo(conn: Connection, photos: tuple[tuple[UUID, str]], photo_type: str, subject_id: UUID):
+async def add_photo(conn: Connection, photos: tuple[tuple[str, str]], photo_type: str, subject_id: str):
     """Check user's uploaded photo count, if greater than 5 raise exception"""
     photos_count = await conn.fetchval(sql.select_photo_count.format(photo_type=photo_type), subject_id)
     if (photos_count + len(photos)) > 5:
@@ -90,18 +89,18 @@ async def add_photo(conn: Connection, photos: tuple[tuple[UUID, str]], photo_typ
 @conn_transaction
 async def create_profile(
     conn: Connection,
-    profile_id: UUID,
-    user_id: UUID,
+    profile_id: str,
+    user_id: str,
     desired_gender: str,
     min_age: int,
     max_age: int,
-    profile_type: int,
+    profile_type: str,
     vehicle_type: str
 ):
     """Create new profile for user with appropriate profile type"""
     db_profile_id = await conn.fetchval(sql.check_profile, user_id, profile_type)
     if db_profile_id:
-        raise my_exceptions.ProfileAlreadyExists
+        raise my_exceptions.ProfileAlreadyExists("User is already have active profile with the same type")
 
     await conn.execute(sql.insert_profile,
                        profile_id, user_id,

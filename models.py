@@ -14,10 +14,11 @@ class Gender(str, Enum):
     female = "female"
 
 
-class ProfileType(int, Enum):
-    driver = 0
-    companion = 1
-    together = 2
+class ProfileType(str, Enum):
+    driver = "driver"
+    companion = "companion"
+    together = "together"
+    any = "any"
 
 
 class VehicleType(str, Enum):
@@ -49,7 +50,7 @@ class RegUser(BaseModel):
     gender: Gender
 
 
-class AskAuthUser(BaseModel):
+class AskForAuthUser(BaseModel):
     user_id: str
     device_id: str
     hashed_password: str

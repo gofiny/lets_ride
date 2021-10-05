@@ -3,7 +3,7 @@ from config import STATIC_FILES, DOMAIN_NAME
 from database import queries
 from datetime import datetime, date
 from fastapi import BackgroundTasks
-from uuid import uuid4, UUID
+from uuid import uuid4
 
 import aiofiles
 import models
@@ -18,15 +18,15 @@ def generate_string(length):
         letters_and_digits) for _ in range(length))
 
 
-def gen_files_uuid(files: list[bytes]) -> tuple[tuple[UUID, bytes]]:
+def gen_files_uuid(files: list[bytes]) -> tuple[tuple[str, bytes]]:
     names = []
     for file in files:
-        names.append((uuid4(), file))
+        names.append((str(uuid4()), file))
 
     return tuple(names)
 
 
-def gen_client_photos_name(files: tuple[tuple[UUID, bytes]]) -> list[str]:
+def gen_client_photos_name(files: tuple[tuple[str, bytes]]) -> list[str]:
     names = []
     for file in files:
         name = f"{DOMAIN_NAME}/{STATIC_FILES}/{file[0]}.jpg"
@@ -34,7 +34,7 @@ def gen_client_photos_name(files: tuple[tuple[UUID, bytes]]) -> list[str]:
     return names
 
 
-def pack_photo_to_upload(files: tuple[tuple[UUID, bytes]], subject_id: str) -> tuple[tuple[UUID, str]]:
+def pack_photo_to_upload(files: tuple[tuple[str, bytes]], subject_id: str) -> tuple[tuple[str, str]]:
     packed = []
     for file in files:
         packed.append((file[0], subject_id))
@@ -42,14 +42,14 @@ def pack_photo_to_upload(files: tuple[tuple[UUID, bytes]], subject_id: str) -> t
     return tuple(packed)
 
 
-async def write_files(files: tuple[tuple[UUID, bytes]], file_extension: str):
+async def write_files(files: tuple[tuple[str, bytes]], file_extension: str):
     for file in files:
         async with aiofiles.open(f"{STATIC_FILES}/{file[0]}{file_extension}", "wb") as f:
             await f.write(file[1])
 
 
-async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
-    session_id = uuid4()
+async def authorization(db_pool: Pool, user: models.AskForAuthUser) -> str:
+    session_id = str(uuid4())
     start_time = datetime.now()
     token = generate_string(64)
 
@@ -62,12 +62,12 @@ async def authorization(db_pool: Pool, user: models.AskAuthUser) -> str:
     return ".".join([token, user.user_id, user.device_id])
 
 
-async def registration(db_pool: Pool, user: models.RegUser) -> UUID:
+async def registration(db_pool: Pool, user: models.RegUser) -> str:
     if not await queries.is_nickname_free(db_pool=db_pool, nickname=user.nickname):
         raise my_exceptions.UserExists("User with the same nickname is already registered")
 
-    user_id = uuid4()
-    rating_id = uuid4()
+    user_id = str(uuid4())
+    rating_id = str(uuid4())
     reg_time = datetime.now()
     born_date = date.fromtimestamp(user.born_date)
 
@@ -114,7 +114,7 @@ async def upload_photos(
 
 
 async def create_profile(db_pool: Pool, profile: models.NewProfile):
-    profile_id = uuid4()
+    profile_id = str(uuid4())
 
     await queries.create_profile(
         db_pool=db_pool,

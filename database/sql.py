@@ -18,7 +18,7 @@ tables = {
                     "desired_gender" VARCHAR(6),
                     "min_age" SMALLINT,
                     "max_age" SMALLINT,
-                    "type" SMALLINT,
+                    "type" VARCHAR(8),
                     "vehicle_type" VARCHAR(8)
                 )''',  # type 0 - driver, 1 - companion, 2 - together
 
